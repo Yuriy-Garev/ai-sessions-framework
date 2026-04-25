@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session Logger"
+  short_description: "Explicit project session logging"
+  default_prompt: "Use $session-logger to init or activate a project, run a manual framework audit when needed, recover memory, and log a session around a real work goal."

@@ -1,0 +1,23 @@
+# Repo-scoped Codex defaults.
+#
+# This file is intentionally model-agnostic:
+# - no `model = ...` key is set here
+# - Codex uses the client-recommended default model
+# - models can be switched per session with the UI or CLI
+#
+# Keep repo-specific behavior here. Keep personal defaults in ~/.codex/config.toml.
+# Access to `projects/` is governed by AGENTS.md and requires explicit project activation.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.safe]
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[profiles.review]
+approval_policy = "on-request"
+sandbox_mode = "read-only"
+
+[sandbox_workspace_write]
+network_access = true
