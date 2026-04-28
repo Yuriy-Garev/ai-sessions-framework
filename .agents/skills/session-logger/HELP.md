@@ -17,8 +17,9 @@ $session-logger init project my-project
 ```
 
 - `index projects` updates the project registry from immediate `projects/` folders and scaffold/config existence only.
-- `list projects` shows short IDs, full IDs, names, paths, scaffold status, and last activation dates.
+- `list projects` shows short IDs, full IDs, names, paths, scaffold status, access mode, write policy, and last activation dates.
 - `init project my-project` normalizes the name, creates the workflow scaffold, registers the project, and activates it as primary.
+- Projects marked `external_read_only` in the registry cannot be initialized or written by Session Logger.
 
 ## Activation
 
@@ -35,6 +36,7 @@ $session-logger deactivate all
 - Projects after `+` are allowed read-only projects.
 - `activate + docs-site` adds a read-only project without changing the current primary.
 - Project refs may be names, aliases, short IDs, or full UUIDs.
+- External read-only projects can be added only with `activate + <project-ref>` after a managed primary is active; they can never become primary.
 - `deactivate` is canonical. `disactivate` is tolerated as an alias.
 
 ## Session Flow
@@ -47,8 +49,22 @@ $session-logger end
 
 - `start` recovers from hot memory after activation.
 - If no project is active, `start` can suggest recent projects before reading project memory.
-- `mid` writes a cheap checkpoint to the primary project only.
+- `mid` manually blends current context and relevant automatic recovery entries into the primary project's hot summary.
 - `end` closes the session, writes logs, and may attempt scoped git reconciliation.
+
+## Automatic Safety Capture
+
+When a primary project is active, agents must append automatic safety entries before and after every accepted implementation plan execution. The user does not need to spell `$session-logger mid` for this narrow safety capture.
+
+- Automatic entries append to `docs/workflow/auto_recovery.md`; they do not overwrite `last_session_summary.md`.
+- Before execution, the entry captures timestamp, trigger, plan ID, prior state, intended plan, decisions/assumptions, expected scope, and risks.
+- After execution and verification, the entry uses the same plan ID and captures actual changes, decisions made during execution, verification, remaining work, and the BEFORE -> NOW delta.
+- Automatic non-plan safety entries are allowed for context pressure, before `/compact`, before `/fork`, or a major decision/milestone.
+- This does not apply to read-only exploration, planning-only turns, or non-mutating checks.
+- If hot recovery has not happened in the current thread, the agent reads only `project_identity.md` and `last_session_summary.md` before appending the entry.
+- If no primary project is active, required files are missing, or append fails, execution is blocked and the failure is reported.
+
+Manual `mid` and session `end` merge useful `auto_recovery.md` entries into normal session memory and remove duplicates. `end` clears `auto_recovery.md` only after the merge succeeds.
 
 ## Audit
 
@@ -65,3 +81,6 @@ $session-logger audit framework
 - `index projects` never reads project code or workflow memory contents.
 - Warm, cold, and freezing memory still require explicit permission.
 - Allowed read-only projects must not receive checkpoints, session logs, framework upgrades, commits, or memory writes.
+- External read-only projects have `write_policy: forbidden`; Session Logger must block init, primary activation, checkpoints, session end, automatic safety entries, scaffold writes, framework upgrades, commits, and memory writes for them.
+- Automatic safety entries write only `auto_recovery.md` in the active primary project and do not grant deeper memory access.
+- If session end finds only Session Logger memory/log changes, it asks before committing those logger-only changes.

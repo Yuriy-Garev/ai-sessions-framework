@@ -1,0 +1,4 @@
+interface:
+  display_name: "CLI Docs Creator"
+  short_description: "Create and audit CLI help text"
+  default_prompt: "Use $cli-docs-creator to improve this CLI help so users can navigate from root help to runnable commands."

@@ -1,5 +1,7 @@
 # Repository Operating Instructions
 
+> Claude Code reads `CLAUDE.md`, which is a thin pointer to this file. Behavior is identical for both runtimes; rules in this document govern Codex and Claude Code equally.
+
 ## Purpose
 This repository is a reusable multi-project Codex workspace.
 
@@ -58,7 +60,11 @@ activate + <allowed-project-ref>, <allowed-project-ref>
 
 Project refs may be canonical names, aliases, short IDs, or full UUIDs from `.agents/projects-index.json`. The full UUID is the durable project ID; the short ID is a convenience reference.
 
+Project records in `.agents/projects-index.json` carry an access policy. Normal writable projects use `access_mode: "managed"`. External cloned reference repositories use `access_mode: "external_read_only"` and `write_policy: "forbidden"`.
+
 The primary project is the only read/write Session Logger project. Allowed projects after `+` are read-only and may be inspected only when explicitly relevant to the current request. `activate + ...` adds read-only projects without changing the current primary.
+
+External read-only projects are never valid primary projects. They may be listed, resolved by name/short ID/full UUID, and added only as allowed read-only references with `activate + <project-ref>` after a writable managed primary is active. Session Logger must not run `init project`, `mid`, `end`, automatic safety entries, framework upgrades, scaffold writes, memory writes, session-end logs, commits, or any other write action against an external read-only project.
 
 If a primary project is already active and `activate <project-ref>` names a different project, pause before replacing the primary and ask whether the user intends to switch primary. If the user meant to add read-only access, add it as read-only and remind them that the explicit syntax is `activate + <project-ref>`.
 
@@ -67,7 +73,7 @@ After primary activation, Codex may access:
 - `projects/<primary-project>/`
 - the primary project's local session-memory files, subject to the permission phrases below
 
-Allowed read-only projects do not receive Session Logger writes, checkpoints, session-end logs, framework upgrades, or commits.
+Allowed read-only projects do not receive Session Logger writes, checkpoints, session-end logs, framework upgrades, or commits. Automatic safety entries also write only to the primary project.
 
 Cross-project work is forbidden unless the user explicitly authorizes all named projects involved, for example:
 
@@ -84,10 +90,13 @@ Recommended convention for each project:
 projects/<project-name>/docs/workflow/
   project_identity.md
   last_session_summary.md
+  auto_recovery.md
   last_session_detailed.md
   sessions_history/
   sessions_history_detailed/
 ```
+
+`auto_recovery.md` is active hot-adjacent workflow memory. It is an append-only buffer for automatic safety entries during an active session, not archive history and not warm/cold/freezing memory.
 
 `docs/frameworks/session-logger/` contains reusable reference docs and templates only. It is not live project memory.
 
@@ -110,7 +119,7 @@ Interpret these phrases only within the currently active and allowed project:
 - `Go cold` -> may open files in that project's `docs/workflow/sessions_history/`
 - `Deep recovery` -> may read that project's warm + cold memory
 - `Full recovery` -> may read that project's warm + cold + freezing memory
-- `mid` -> update that project's `last_session_summary.md` only and mark it as a checkpoint
+- `mid` -> manually update that project's `last_session_summary.md` only and mark it as a checkpoint
 - `Do not burn tokens` -> keep recovery hot-only and responses compact
 
 These phrases never grant access to another project.
@@ -130,9 +139,10 @@ For activated project work:
 1. Current user request
 2. Active project's `docs/workflow/project_identity.md`
 3. Active project's `docs/workflow/last_session_summary.md`
-4. Approved active-project `docs/workflow/last_session_detailed.md`
-5. Approved active-project files in `docs/workflow/sessions_history/`
-6. Approved active-project files in `docs/workflow/sessions_history_detailed/`
+4. Active project's `docs/workflow/auto_recovery.md` when manual `mid`, `end`, or unclosed-plan recovery needs pending automatic entries
+5. Approved active-project `docs/workflow/last_session_detailed.md`
+6. Approved active-project files in `docs/workflow/sessions_history/`
+7. Approved active-project files in `docs/workflow/sessions_history_detailed/`
 
 Older memory must never override the current user request. Memory from one project must never be used for another project.
 
@@ -152,9 +162,67 @@ When explicitly evoked, Session Logger commands are:
 - `end` -> close the session
 - `deactivate <project-ref>` / `deactivate all` -> remove project access for the current conversation
 
-Do not run Session Logger actions from plain `start`, `mid`, `end`, or `activate` unless the skill was explicitly evoked in the same request.
+Do not run Session Logger actions from plain `start`, `mid`, `end`, or `activate` unless the skill was explicitly evoked in the same request. The only exceptions are automatic safety entries, defined below.
 
 If no project is active, Session Logger `start` may read only `.agents/projects-index.json` and offer the last three activated projects as `1`, `2`, `3`, or `Other`. It must activate the chosen project before reading or writing live session memory.
+
+If a suggested or selected project has `access_mode: "external_read_only"`, it cannot be selected as primary for `start`; ask the user to activate a managed primary and then add the external project with `activate + <project-ref>` if read-only reference access is needed.
+
+## Automatic Safety Entries
+When a primary project is active and the user accepts an implementation plan, Codex must append a Session Logger automatic safety entry before the first mutating execution step and another after execution and verification, before the final response, `/compact`, or `/fork`.
+
+Automatic safety entries are a narrow exception to the explicit invocation requirement. They exist to preserve the BEFORE -> NOW delta during long, compacted, or multi-plan work without overwriting hot summary memory.
+
+They apply to every distinct accepted execution plan that will:
+- edit files
+- run migrations, code generation, or formatters that write files
+- stage, commit, or otherwise mutate repository state
+- perform any side-effectful implementation action
+
+They also apply to these narrow non-plan safety events when useful state has not already been captured:
+- context pressure
+- before `/compact`
+- before `/fork`
+- major decision or milestone recognized by the agent
+
+They do not apply to read-only exploration, planning-only turns, or non-mutating checks.
+
+Before appending any automatic safety entry, Codex must confirm primary activation, project initialization, and current-thread hot recovery. If hot recovery has not happened in the current thread, read only the primary project's `project_identity.md` and `last_session_summary.md` first. If required files are missing or unreadable, block execution and report the missing prerequisite.
+
+Automatic safety entries write only to the primary project's `docs/workflow/auto_recovery.md`. They append and never overwrite existing content. If `auto_recovery.md` is missing in an initialized project, manual framework audit should propose adding it from the scaffold; automatic execution must not silently create project-local scaffold files outside an adopted framework update.
+
+Before-plan checkpoints must capture:
+- timestamp
+- source or trigger
+- stable plan/checkpoint ID
+- prior state
+- intended plan
+- decisions and assumptions
+- expected files or scope
+- known risks
+
+After-plan checkpoints must capture:
+- timestamp
+- source or trigger
+- the same plan/checkpoint ID
+- original intent summary
+- actual changes
+- decisions made during execution
+- verification performed
+- remaining work
+- the BEFORE -> NOW delta
+
+If a before-plan entry has no matching after-plan entry, later `start`, manual `mid`, or `end` must surface it as an unclosed plan marker.
+
+Automatic safety entries obey all normal Session Logger write boundaries:
+- require an already active primary project
+- write only the primary project's `docs/workflow/auto_recovery.md`
+- never write to allowed read-only projects
+- do not archive
+- do not write `last_session_detailed.md`
+- do not imply warm, cold, or freezing memory access
+
+If no primary project is active, Codex must block plan execution and ask the user to activate or start a primary project. If an automatic safety entry fails, Codex must block execution or final delivery as appropriate and report the failure. When an automatic non-plan safety entry is appended, briefly tell the user what was captured and why.
 
 ## Skills and Frameworks
 - Prefer active repo-local skills in `.agents/skills/` when the task matches a skill description.

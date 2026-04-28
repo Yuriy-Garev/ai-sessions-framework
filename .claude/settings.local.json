@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python C:/Users/yuriy/.codex/skills/.system/skill-creator/scripts/quick_validate.py D:/Desktop/CodexAccess/.agents/skills/session-logger)"
+    ]
+  }
+}

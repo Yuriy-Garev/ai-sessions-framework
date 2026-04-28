@@ -1,7 +1,7 @@
 # Last Session Summary
 
 ## Title
-[Mon, 14-04-2026 | One-line factual session goal]
+[Mon, 14-04-2026 | One-line factual session goal or CHECKPOINT marker]
 
 ## TL;DR
 [3–6 lines. What was completed. Where work stopped. What matters next.]
@@ -22,6 +22,9 @@
 - In Progress:
 - Blocked:
 - Not Started but Requested:
+
+## Auto Recovery
+[Only include when relevant. Note unresolved automatic entries or unclosed plan markers from `auto_recovery.md`.]
 
 ## Next Recommended Step
 [Single best next action]

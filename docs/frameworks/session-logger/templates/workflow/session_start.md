@@ -13,16 +13,17 @@ This procedure assumes the project has already been bootstrapped with `init proj
 6. If `docs/workflow/` is missing or placeholder files were never scaffolded, stop and instruct the user to run `init project <project-name>`.
 7. Read this project's `docs/workflow/project_identity.md`.
 8. Read this project's `docs/workflow/last_session_summary.md`.
-9. Parse the date from the hot summary title when possible. Prefer `dd-mm-yyyy` from titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`.
-10. If hot memory is older than 72 hours, ask explicit permission before reading `last_session_detailed.md`.
-11. If warm access is granted, brief:
+9. If `docs/workflow/auto_recovery.md` exists, inspect it only for unclosed automatic plan markers and unresolved safety entries that affect restart accuracy.
+10. Parse the date from the hot summary title when possible. Prefer `dd-mm-yyyy` from titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`.
+11. If hot memory is older than 72 hours, ask explicit permission before reading `last_session_detailed.md`.
+12. If warm access is granted, brief:
    - where we are,
    - what we were doing,
    - what was done,
    - what is next.
-12. Ask the user to choose the session topic after stale warm recovery.
-13. If hot memory is fresh, warm access is denied, or the date is missing/unparseable, keep the topic pending until the first non-logger work request.
-14. State any uncertainty from hot-only recovery.
+13. Ask the user to choose the session topic after stale warm recovery.
+14. If hot memory is fresh, warm access is denied, or the date is missing/unparseable, keep the topic pending until the first non-logger work request.
+15. State any uncertainty from hot-only recovery, including any unclosed automatic plan markers.
 
 ---
 
@@ -44,6 +45,7 @@ If a native runtime command exists to rename the chat/thread, use it only after 
 |---|---|
 | `project_identity.md` | yes, within active project |
 | `last_session_summary.md` | yes, within active project |
+| `auto_recovery.md` | yes, unresolved automatic entries only |
 | `last_session_detailed.md` | no, except explicit stale-hot warm permission |
 | archive filenames | yes, within active project |
 | archive file contents | no |
@@ -55,7 +57,8 @@ If a native runtime command exists to rename the chat/thread, use it only after 
 1. Current user request
 2. Primary active project `project_identity.md`
 3. Primary active project `last_session_summary.md`
-4. Approved deeper sources from the primary active project only
+4. Primary active project `auto_recovery.md` for unresolved automatic entries
+5. Approved deeper sources from the primary active project only
 
 Older memory never overrides current user instruction. Memory from another project is never in scope unless that project is explicitly activated as read-only and explicitly relevant to the current request.
 
@@ -82,6 +85,7 @@ activate + <allowed-ref>, <allowed-ref>
 - Do not read project memory before explicit project activation.
 - Do not write to allowed read-only projects.
 - Do not read warm / cold / freezing without permission.
+- Do not treat `auto_recovery.md` as warm, cold, freezing, or archive memory.
 - Do not read another project's memory.
 - Do not use logger command text as the session topic.
 - Do not invent tasks, blockers, or progress.

@@ -12,6 +12,7 @@ This directory is shared reference material. It is not live project memory.
 - preserve factual continuity in one primary project at a time
 - prevent implicit memory sharing across projects
 - keep logger workflow commands separate from real session topics
+- preserve plan execution decisions with forced append-only before/after safety entries
 - improve end-of-session data quality with scoped git reconciliation
 - use native Codex session controls without weakening project isolation
 
@@ -31,7 +32,9 @@ The repo-level project registry lives at:
 .agents/projects-index.json
 ```
 
-It stores stable UUID project IDs, short convenience IDs, canonical names, scaffold status, and the last three activations. It is shared infrastructure, not live project memory.
+It stores stable UUID project IDs, short convenience IDs, canonical names, scaffold status, access policy, write policy, and recent activations. It is shared infrastructure, not live project memory.
+
+Normal writable projects use `access_mode: "managed"` and `write_policy: "allowed"`. External cloned reference repositories use `access_mode: "external_read_only"` and `write_policy: "forbidden"`.
 
 The canonical printed command overview lives at:
 
@@ -67,6 +70,7 @@ This file stores the project's adopted Session Logger framework date and last ma
 
 ### Project-local memory files
 - Hot: `docs/workflow/last_session_summary.md`
+- Automatic recovery buffer: `docs/workflow/auto_recovery.md`
 - Warm: `docs/workflow/last_session_detailed.md`
 
 ### Project-local archive folders
@@ -80,9 +84,10 @@ Within the primary active project only:
 1. Current user request
 2. `project_identity.md`
 3. `last_session_summary.md`
-4. Approved `last_session_detailed.md`
-5. Approved files from `sessions_history/`
-6. Approved files from `sessions_history_detailed/`
+4. `auto_recovery.md` when manual `mid`, `end`, or unclosed-plan recovery needs pending automatic entries
+5. Approved `last_session_detailed.md`
+6. Approved files from `sessions_history/`
+7. Approved files from `sessions_history_detailed/`
 
 Older memory must never override the current user instruction. Memory from one project must never be used for another project.
 
@@ -99,13 +104,15 @@ activate + <allowed-ref>, <allowed-ref>
 
 Project refs may be canonical names, aliases, short IDs, or full UUIDs from `.agents/projects-index.json`. The full UUID is the durable project identity; the short ID is a convenience reference for commands and lists.
 
-The primary project is the only target for Session Logger memory writes, checkpoints, session-end logs, manual framework upgrades, and commits. Allowed projects are read-only and may be inspected only when explicitly relevant to the current user request. `activate + ...` adds read-only projects without changing the current primary.
+The primary project is the only target for Session Logger memory writes, checkpoints, automatic recovery entries, session-end logs, manual framework upgrades, and commits. Allowed projects are read-only and may be inspected only when explicitly relevant to the current user request. `activate + ...` adds read-only projects without changing the current primary. Automatic safety entries also write only to the primary project.
+
+External read-only projects may be listed and resolved, but they can only be added as allowed read-only references after a managed primary is active. They must never become primary, and Session Logger must block `init project`, `mid`, `end`, automatic safety entries, framework upgrades, scaffold writes, memory writes, session-end logs, commits, and any other write action for them.
 
 If a primary project is already active and `activate <project-ref>` names a different project, pause before replacing the primary and ask whether the user intends to switch primary. If the user meant to add read-only access, add it as read-only and remind them that the explicit syntax is `$session-logger activate + <project-ref>`.
 
 When a project is active, memory permissions apply only to the primary project unless the user explicitly names an allowed read-only project and grants read depth for that project.
 
-If a project has not been initialized yet, `init project <project-name>` is the only valid Session Logger bootstrap step. `activate` and `start` should instruct the user to run `init project` first instead of pretending recovery can proceed.
+If a managed project has not been initialized yet, `init project <project-name>` is the only valid Session Logger bootstrap step. `activate` and `start` should instruct the user to run `init project` first instead of pretending recovery can proceed. External read-only projects are never initialized by Session Logger.
 
 ## Command lifecycle
 
@@ -122,8 +129,9 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 - `activate` chooses the primary read/write project and optional allowed read-only projects.
 - `audit framework` manually compares the primary active project against the current shared framework methodology.
 - `start` recovers from hot memory once the scaffold exists.
-- `mid` writes a summary-only checkpoint.
-- `end` writes closeout logs and may attempt scoped commit reconciliation.
+- `mid` manually blends current context and relevant automatic recovery entries into a curated hot-summary checkpoint.
+- automatic safety capture appends before/after entries around accepted implementation plan execution and narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
+- `end` writes closeout logs, merges and clears `auto_recovery.md` after successful incorporation, and may attempt scoped commit reconciliation.
 
 ## Session topic
 
@@ -145,14 +153,14 @@ See the scaffolded operating files in `templates/workflow/` for exact behavior.
 
 ## Session Logger commands
 
-The active skill is `session-logger`, displayed as Session Logger. It must be explicitly evoked before any skill action runs.
+The active skill is `session-logger`, displayed as Session Logger. It must be explicitly evoked before any skill action runs, except for automatic safety entries when a primary project is already active.
 
 - `help` prints `.agents/skills/session-logger/HELP.md` verbatim.
 - `help all` is an alias for `help`.
 - `index projects` updates `.agents/projects-index.json` from immediate project folders and scaffold/config existence only.
-- `list projects` displays indexed project metadata.
+- `list projects` displays indexed project metadata, including access mode and write policy.
 - `init project <project-name>` creates project-local workflow scaffold and placeholders, registers the project, and activates it as primary.
-- `activate <project-ref>` selects the primary read/write project.
+- `activate <project-ref>` selects the primary read/write managed project.
 - `activate <primary-ref> + <allowed-ref>, <allowed-ref>` selects a primary read/write project plus allowed read-only projects.
 - `activate + <allowed-ref>, <allowed-ref>` adds allowed read-only projects without changing the current primary.
 - `deactivate <project-ref>` removes one project from the active set.
@@ -160,17 +168,33 @@ The active skill is `session-logger`, displayed as Session Logger. It must be ex
 - `disactivate` is tolerated as an alias for `deactivate`, but `deactivate` is canonical.
 - `audit framework` runs a manual framework audit for the primary active project only.
 - `start` recovers from hot memory and applies topic freshness rules.
-- `mid` writes a cheap mid-session checkpoint.
+- `mid` writes a curated hot-summary checkpoint by blending current context with relevant automatic recovery entries.
 - `end` closes the session, writes history, attempts a one-time scoped git commit, and reconciles latest logs after a successful commit.
 
-For the current dogfooding release, the v1 context inventory spec and example pack live in:
+## Automatic safety capture
 
-- `projects/context-framework/docs/product/releases/2026-04/session_logger_context_inventory.md`
-- `projects/context-framework/docs/product/releases/2026-04/session_logger_context_inventory_examples.md`
-- `projects/context-framework/docs/product/releases/2026-04/effective_context_checklist.md`
-- `projects/context-framework/docs/product/releases/2026-04/session_logger_activation_audit.md`
+When a primary project is active and the user accepts an implementation plan, Session Logger must append an automatic safety entry before the first mutating execution step and again after execution/verification before the final response, `/compact`, or `/fork`.
 
-These documents define how to describe included sources, permissions, freshness, and exclusion reasons for each Session Logger operation, plus how Session Logger should explain itself live while it is running.
+This applies to each distinct execution plan that edits files, runs write-producing migrations/codegen/formatters, stages or commits changes, or otherwise carries out side-effectful implementation work.
+
+Automatic safety entries also apply to narrow non-plan safety events: context pressure, before `/compact`, before `/fork`, or a major decision/milestone recognized by the agent.
+
+This does not apply to read-only exploration, planning-only turns, or non-mutating checks.
+
+Before automatic capture, current-thread hot recovery must be confirmed. If it has not happened, read only `project_identity.md` and `last_session_summary.md` first. If the scaffold or required files are missing, block execution and explain the missing prerequisite.
+
+Automatic entries append to `docs/workflow/auto_recovery.md`; they never overwrite `last_session_summary.md`. Each plan gets a stable plan/checkpoint ID. BEFORE entries capture timestamp, trigger, plan ID, prior state, intended plan, assumptions, expected scope, and risks. AFTER entries use the same plan ID and capture original intent summary, actual changes, execution-time decisions, verification, remaining work, and the BEFORE -> NOW delta. If a BEFORE entry has no matching AFTER entry, later `start`, manual `mid`, or `end` surfaces it as an unclosed plan marker.
+
+Automatic safety capture is a narrow invocation-gate exception. It does not authorize any other Session Logger command, warm/cold/freezing reads, writes to allowed read-only projects, framework audits, or framework upgrades. If no primary project is active, execution is blocked until the user activates or starts one. If the append fails, execution or final delivery is blocked and the failure is reported. For non-plan safety entries, briefly tell the user what was captured and why.
+
+Reusable v1 context inventory and activation-audit references live in shared framework references:
+
+- `docs/frameworks/session-logger/references/context-inventory-v1.md`
+- `docs/frameworks/session-logger/references/context-inventory-examples.md`
+- `docs/frameworks/session-logger/references/effective-context-checklist.md`
+- `docs/frameworks/session-logger/references/activation-audit.md`
+
+The `context-framework` project may keep product decision/history copies, but those project-local docs are not required shared framework references.
 
 ## Release C Visibility Surfaces
 
@@ -180,21 +204,21 @@ Session Logger should be able to explain:
 - what command it interpreted
 - what rules constrained the run
 
-Use these surfaces together:
+Use these shared reference surfaces together:
 
-- `effective_context_checklist.md` = manual operator preflight
-- `session_logger_activation_audit.md` = live explanation surface
-- `session_logger_context_inventory.md` = deeper audit surface
+- `references/effective-context-checklist.md` = manual operator preflight
+- `references/activation-audit.md` = live explanation surface
+- `references/context-inventory-v1.md` = deeper audit surface
 
 The activation audit is a compact runtime-facing markdown block. It does not replace the deeper context inventory.
 
-Release C does not weaken existing safety boundaries:
+Current releases do not weaken existing safety boundaries:
 
-- explicit invocation remains required
+- explicit invocation remains required except for automatic safety entries
 - scope stays primary-project-only for writes
 - cross-project memory remains forbidden unless separately authorized as read-only
 - warm/cold access remains permission-gated
-- no auto-preflight or auto-permission behavior is added
+- no auto-preflight, auto-audit, or auto-permission behavior is added
 - allowed projects remain read-only
 
 ## Manual framework audit
@@ -216,7 +240,7 @@ This audit:
 - evaluates only Session Logger-governed surfaces in the primary active project
 - proposes specific approval-gated actions when changes are needed
 
-This release does not add auto-update or preflight self-check behavior. Those ideas remain deferred.
+This release does not add auto-update or preflight self-check behavior. Those ideas remain deferred. The audit is manifest-driven; do not read deep shared reference packs unless the user explicitly asks for deeper reference review.
 
 ## Governed project surfaces
 
@@ -254,6 +278,7 @@ Treat Session Logger sources like this:
 
 - `project_identity.md` = project-local identity context
 - `last_session_summary.md` = hot state
+- `auto_recovery.md` = active append-only automatic recovery buffer
 - `last_session_detailed.md` = warm state
 - `sessions_history/` = cold state
 - `sessions_history_detailed/` = freezing state
@@ -261,18 +286,24 @@ Treat Session Logger sources like this:
 - `.agents/projects-index.json` = shared registry metadata, never live project memory
 - `.agents/skills/session-logger/HELP.md` = printed command help, never live project memory
 
+Registry access policy is authoritative for write eligibility. If a project record has `access_mode: "external_read_only"` or `write_policy: "forbidden"`, Session Logger may use it only as an allowed read-only reference and must not write to that project.
+
 ## End-of-session git flow
 
 The `end` flow logs first, then tries to commit:
 
 1. Write latest summary and detailed logs with grouped dirty state.
-2. Inspect scoped git status.
-3. If scoped changes exist, request one-time permission for a commit transaction.
-4. Stage only active-project changes plus explicitly allowed repo-level files.
-5. Commit using `type(scope): specific outcome`.
-6. Rerun scoped status.
-7. Rewrite latest logs only so committed files move to `Committed` and remaining dirty files stay under `Remaining uncommitted`.
-8. Stage rewritten latest logs and amend the same commit.
+2. Read `auto_recovery.md`, merge useful automatic entries into latest session memory, dedupe against existing hot/warm facts, and clear `auto_recovery.md` only after successful incorporation.
+3. Inspect scoped git status.
+4. If at least one non-logger scoped change exists, request one-time permission for a commit transaction.
+5. If only Session Logger memory/log files are dirty, explicitly ask whether to commit those logger-only changes.
+6. Skip commit entirely only when there are no meaningful file changes, decisions, or progress to preserve.
+7. Stage only active-project changes plus explicitly allowed repo-level files.
+8. Commit using `type(scope): specific outcome`.
+9. For logger-only commits approved by the user, use a factual memory-outcome subject such as `docs(session-logger): record session decisions`.
+10. Rerun scoped status.
+11. Rewrite latest logs only so committed files move to `Committed` and remaining dirty files stay under `Remaining uncommitted`.
+12. Stage rewritten latest logs and amend the same commit.
 
 If permission is denied/canceled, or no commit succeeds, leave logs as written. Never stage another project, and never push unless explicitly requested.
 
@@ -286,7 +317,7 @@ Use:
 
 Allowed types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`.
 
-The subject must describe the actual work outcome, not logger mechanics. Avoid filler like `capture session end`, `update session log`, `misc changes`, and `session cleanup`.
+The subject must describe the actual work outcome, not logger mechanics. Avoid filler like `capture session end`, `update session log`, `misc changes`, and `session cleanup`. Logger-only commits require explicit user choice and must describe the durable memory outcome.
 
 ## Native Codex commands
 
@@ -296,4 +327,6 @@ These commands are useful with the framework, but they do not replace project-lo
 - `/compact` after `mid` or `end` when continuing with less context.
 - `/fork` before risky exploration or alternate approaches.
 
-Run `mid` before `/compact` or `/fork` when important state has not yet been written to the primary active project's memory.
+Append an automatic safety entry before `/compact` or `/fork` when important state has not yet been written to the primary active project's memory.
+
+Automatic safety capture must run before `/compact` or `/fork` when either command would follow an accepted implementation plan.
