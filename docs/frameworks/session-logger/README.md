@@ -26,13 +26,19 @@ projects/<project-name>/docs/workflow/
 
 The scaffold in `templates/workflow/` can be copied or adapted into an activated project after the user grants access to that project.
 
-The repo-level project registry lives at:
+The repo-level live project registry is local ignored state at:
 
 ```text
 .agents/projects-index.json
 ```
 
-It stores stable UUID project IDs, short convenience IDs, canonical names, scaffold status, access policy, write policy, and recent activations. It is shared infrastructure, not live project memory.
+It stores stable UUID project IDs, short convenience IDs, canonical names, scaffold status, access policy, write policy, and recent activations. It is shared infrastructure, not live project memory, and is intentionally not tracked by git in the public workspace template.
+
+The tracked schema example lives at:
+
+```text
+.agents/projects-index.example.json
+```
 
 Normal writable projects use `access_mode: "managed"` and `write_policy: "allowed"`. External cloned reference repositories use `access_mode: "external_read_only"` and `write_policy: "forbidden"`.
 
@@ -102,7 +108,7 @@ activate <primary-ref> + <allowed-ref>, <allowed-ref>
 activate + <allowed-ref>, <allowed-ref>
 ```
 
-Project refs may be canonical names, aliases, short IDs, or full UUIDs from `.agents/projects-index.json`. The full UUID is the durable project identity; the short ID is a convenience reference for commands and lists.
+Project refs may be canonical names, aliases, short IDs, or full UUIDs from the local `.agents/projects-index.json`. The full UUID is the durable project identity; the short ID is a convenience reference for commands and lists.
 
 The primary project is the only target for Session Logger memory writes, checkpoints, automatic recovery entries, session-end logs, manual framework upgrades, and commits. Allowed projects are read-only and may be inspected only when explicitly relevant to the current user request. `activate + ...` adds read-only projects without changing the current primary. Automatic safety entries also write only to the primary project.
 
@@ -123,21 +129,21 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 ```
 
 - `help` prints the maintained help file without reading project memory, project index, or framework docs.
-- `index projects` updates the repo-level registry from immediate project directory names plus scaffold/config existence only.
+- `index projects` creates or updates the local repo-level registry from immediate project directory names plus scaffold/config existence only.
 - `list projects` shows indexed projects, including short IDs and full IDs, without reading project memory.
 - `init project` prepares, registers, and immediately activates an uninitialized project.
 - `activate` chooses the primary read/write project and optional allowed read-only projects.
 - `audit framework` manually compares the primary active project against the current shared framework methodology.
 - `start` recovers from hot memory once the scaffold exists.
 - `mid` manually blends current context and relevant automatic recovery entries into a curated hot-summary checkpoint.
-- automatic safety capture appends before/after entries around accepted implementation plan execution and narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
+- automatic safety capture appends before/after entries around accepted project-scoped implementation plan execution and narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
 - `end` writes closeout logs, merges and clears `auto_recovery.md` after successful incorporation, and may attempt scoped commit reconciliation.
 
 ## Session topic
 
 Session Logger commands are control text. Do not use `$session-logger start`, `Session Logger start`, or `Start session logger` as the durable session topic.
 
-On activation/start, read hot memory and parse the date from `last_session_summary.md` when possible. Prefer `dd-mm-yyyy` in titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`. If no project is active, `start` first reads only `.agents/projects-index.json` and offers recent projects as `1`, `2`, `3`, or `Other`. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref. After a primary project is selected, apply normal hot recovery. If the hot summary is older than 72 hours, ask permission to read warm memory, brief the user on state, and ask them to choose the topic. If hot memory is fresh, warm access is denied, or the date cannot be parsed, derive the topic from the first non-logger work request.
+On activation/start, read hot memory and parse the date from `last_session_summary.md` when possible. Prefer `dd-mm-yyyy` in titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`. If no project is active, `start` first reads only the local `.agents/projects-index.json` and offers recent projects as `1`, `2`, `3`, or `Other`. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref. After a primary project is selected, apply normal hot recovery. If the hot summary is older than 72 hours, ask permission to read warm memory, brief the user on state, and ask them to choose the topic. If hot memory is fresh, warm access is denied, or the date cannot be parsed, derive the topic from the first non-logger work request.
 
 ## Permission phrases
 
@@ -157,7 +163,7 @@ The active skill is `session-logger`, displayed as Session Logger. It must be ex
 
 - `help` prints `.agents/skills/session-logger/HELP.md` verbatim.
 - `help all` is an alias for `help`.
-- `index projects` updates `.agents/projects-index.json` from immediate project folders and scaffold/config existence only.
+- `index projects` creates or updates the local `.agents/projects-index.json` from immediate project folders and scaffold/config existence only.
 - `list projects` displays indexed project metadata, including access mode and write policy.
 - `init project <project-name>` creates project-local workflow scaffold and placeholders, registers the project, and activates it as primary.
 - `activate <project-ref>` selects the primary read/write managed project.
@@ -173,19 +179,21 @@ The active skill is `session-logger`, displayed as Session Logger. It must be ex
 
 ## Automatic safety capture
 
-When a primary project is active and the user accepts an implementation plan, Session Logger must append an automatic safety entry before the first mutating execution step and again after execution/verification before the final response, `/compact`, or `/fork`.
+When a primary project is active and the user accepts a project-scoped implementation plan that mutates project or session-scoped state, Session Logger must append an automatic safety entry before the first mutating execution step and again after execution/verification before the final response, `/compact`, or `/fork`.
 
-This applies to each distinct execution plan that edits files, runs write-producing migrations/codegen/formatters, stages or commits changes, or otherwise carries out side-effectful implementation work.
+This applies to each distinct project-scoped execution plan that edits files, runs write-producing migrations/codegen/formatters, stages or commits changes, or otherwise carries out side-effectful implementation work.
 
 Automatic safety entries also apply to narrow non-plan safety events: context pressure, before `/compact`, before `/fork`, or a major decision/milestone recognized by the agent.
 
 This does not apply to read-only exploration, planning-only turns, or non-mutating checks.
 
+Root shared-infrastructure work may proceed without a primary project. Do not create root-level shared memory for root-only work, and do not write automatic safety entries unless a primary project is active and the work is being captured for that project.
+
 Before automatic capture, current-thread hot recovery must be confirmed. If it has not happened, read only `project_identity.md` and `last_session_summary.md` first. If the scaffold or required files are missing, block execution and explain the missing prerequisite.
 
 Automatic entries append to `docs/workflow/auto_recovery.md`; they never overwrite `last_session_summary.md`. Each plan gets a stable plan/checkpoint ID. BEFORE entries capture timestamp, trigger, plan ID, prior state, intended plan, assumptions, expected scope, and risks. AFTER entries use the same plan ID and capture original intent summary, actual changes, execution-time decisions, verification, remaining work, and the BEFORE -> NOW delta. If a BEFORE entry has no matching AFTER entry, later `start`, manual `mid`, or `end` surfaces it as an unclosed plan marker.
 
-Automatic safety capture is a narrow invocation-gate exception. It does not authorize any other Session Logger command, warm/cold/freezing reads, writes to allowed read-only projects, framework audits, or framework upgrades. If no primary project is active, execution is blocked until the user activates or starts one. If the append fails, execution or final delivery is blocked and the failure is reported. For non-plan safety entries, briefly tell the user what was captured and why.
+Automatic safety capture is a narrow invocation-gate exception. It does not authorize any other Session Logger command, warm/cold/freezing reads, writes to allowed read-only projects, framework audits, or framework upgrades. If no primary project is active for project-scoped work that requires automatic safety capture, execution is blocked until the user activates or starts one. If the append fails, execution or final delivery is blocked and the failure is reported. For non-plan safety entries, briefly tell the user what was captured and why.
 
 Reusable v1 context inventory and activation-audit references live in shared framework references:
 
@@ -194,7 +202,7 @@ Reusable v1 context inventory and activation-audit references live in shared fra
 - `docs/frameworks/session-logger/references/effective-context-checklist.md`
 - `docs/frameworks/session-logger/references/activation-audit.md`
 
-The `context-framework` project may keep product decision/history copies, but those project-local docs are not required shared framework references.
+Project-local product decision/history docs are not required shared framework references.
 
 ## Release C Visibility Surfaces
 
@@ -283,7 +291,8 @@ Treat Session Logger sources like this:
 - `sessions_history/` = cold state
 - `sessions_history_detailed/` = freezing state
 - `docs/frameworks/session-logger/` = shared reference only, never live state
-- `.agents/projects-index.json` = shared registry metadata, never live project memory
+- `.agents/projects-index.json` = local ignored shared registry metadata, never live project memory
+- `.agents/projects-index.example.json` = tracked registry schema example, never live project memory
 - `.agents/skills/session-logger/HELP.md` = printed command help, never live project memory
 
 Registry access policy is authoritative for write eligibility. If a project record has `access_mode: "external_read_only"` or `write_policy: "forbidden"`, Session Logger may use it only as an allowed read-only reference and must not write to that project.
@@ -329,4 +338,4 @@ These commands are useful with the framework, but they do not replace project-lo
 
 Append an automatic safety entry before `/compact` or `/fork` when important state has not yet been written to the primary active project's memory.
 
-Automatic safety capture must run before `/compact` or `/fork` when either command would follow an accepted implementation plan.
+Automatic safety capture must run before `/compact` or `/fork` when either command would follow an accepted project-scoped implementation plan.

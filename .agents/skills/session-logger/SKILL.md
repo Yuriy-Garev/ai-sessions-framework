@@ -9,7 +9,7 @@ Manage session memory inside one primary explicitly activated project. Optional 
 
 Use `docs/frameworks/session-logger/` only as shared reference/scaffolding. Do not recover from it as live state.
 
-Use `.agents/projects-index.json` as the repo-level project registry. It is shared infrastructure, not project memory.
+Use the local `.agents/projects-index.json` as the repo-level project registry. It is local ignored shared infrastructure, not project memory. The public tracked schema example is `.agents/projects-index.example.json`.
 
 Use `.agents/skills/session-logger/HELP.md` as the canonical printed help text.
 
@@ -21,10 +21,12 @@ Exception: automatic safety entries may run without the user spelling `$session-
 
 - a primary Session Logger project is already active
 - the project is initialized and current-thread hot recovery is complete, or hot recovery can be completed by reading only `project_identity.md` and `last_session_summary.md`
-- the user accepted an implementation plan that is about to mutate state or has just completed execution/verification, or a narrow non-plan safety event is occurring
+- the user accepted a project-scoped implementation plan that is about to mutate project or session-scoped state or has just completed execution/verification, or a narrow non-plan safety event is occurring
 - the entry appends only to the primary project's `docs/workflow/auto_recovery.md`
 
-If no primary project is active, automatic safety capture must block execution and ask the user to activate or start a primary project. If hot recovery cannot be completed, `auto_recovery.md` is unavailable, or the append fails, execution or final delivery must stop and report the failure.
+Root shared-infrastructure work may proceed without a primary project. Do not create root-level shared memory for root-only work, and do not write automatic safety entries unless a primary project is active and the work is being captured for that project.
+
+If no primary project is active for project-scoped work that requires automatic safety capture, block execution and ask the user to activate or start a primary project. If hot recovery cannot be completed, `auto_recovery.md` is unavailable, or the append fails, execution or final delivery must stop and report the failure.
 
 After explicit evocation, interpret only these short commands:
 
@@ -32,7 +34,7 @@ After explicit evocation, interpret only these short commands:
 - `help all` = alias for `help`
 - `init <project-name>` = legacy alias for `init project <project-name>` when unambiguous
 - `init project <project-name>` = normalize a new project name, create/register the project, and activate it as primary
-- `index projects` = update `.agents/projects-index.json` from immediate project directory names plus scaffold/config existence only
+- `index projects` = create or update the local `.agents/projects-index.json` from immediate project directory names plus scaffold/config existence only
 - `list projects` = list indexed projects without reading project memory
 - `activate <project-ref>` = activate the named project as primary
 - `activate <primary-ref> + <allowed-ref>, <allowed-ref>` = activate a primary read/write project plus allowed read-only projects
@@ -51,7 +53,7 @@ For `help` and `help all`:
 
 1. Read only `.agents/skills/session-logger/HELP.md`.
 2. Print its contents verbatim.
-3. Do not read `.agents/projects-index.json`.
+3. Do not read the local `.agents/projects-index.json`.
 4. Do not read project workflow files, project code, framework docs, or live memory.
 5. Do not summarize or reconstruct the help text from memory.
 
@@ -82,7 +84,7 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 - `audit framework` manually checks the primary active project against the current shared framework methodology.
 - `start` recovers from hot memory only after init exists.
 - `mid` manually blends current context and relevant automatic entries into a curated hot-summary checkpoint.
-- automatic safety entries append to `auto_recovery.md` before/after accepted implementation plan execution and for narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
+- automatic safety entries append to `auto_recovery.md` before/after accepted project-scoped implementation plan execution and for narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
 - `end` writes closeout logs, merges and clears `auto_recovery.md` after successful incorporation, and may attempt scoped commit reconciliation.
 
 If `activate` or `start` selects a project that has no workflow scaffold yet, instruct the user to run `init project <project-name>` instead of acting as if recovery can proceed.
@@ -96,7 +98,7 @@ For `init project`:
 1. Confirm the user explicitly named the project.
 2. Normalize the provided name: lowercase, trim, convert spaces/underscores to hyphens, remove unsupported characters, collapse repeated hyphens, and reject empty/colliding names with a concrete suggested alternative.
 3. Create `projects/<normalized-name>/docs/workflow/` from the shared scaffold.
-4. Register the project in `.agents/projects-index.json` with an immutable UUID v4 `id`, a `short_id` derived from the first UUID segment, `access_mode: "managed"`, and `write_policy: "allowed"`.
+4. Register the project in the local `.agents/projects-index.json` with an immutable UUID v4 `id`, a `short_id` derived from the first UUID segment, `access_mode: "managed"`, and `write_policy: "allowed"`.
 5. Create `projects/<normalized-name>/.codex/session-logger.toml` if the project does not already have framework audit state, and store the project ID when practical.
 6. Set the adopted framework date to the current shared framework update date during explicit framework init.
 7. Do not write real session memory during init.
@@ -109,7 +111,7 @@ For legacy `init <project-name>`:
 
 For `index projects`:
 
-1. Read and update only `.agents/projects-index.json`.
+1. Read and update only the local `.agents/projects-index.json`, creating it with the tracked `.agents/projects-index.example.json` shape when missing.
 2. Inspect only immediate child directory names under `projects/`.
 3. Check only whether Session Logger scaffold/config paths exist.
 4. Never read project code, project memory file contents, archive contents, or recurse broadly through project trees.
@@ -120,7 +122,7 @@ For `index projects`:
 
 For `list projects`:
 
-- Read only `.agents/projects-index.json`.
+- Read only the local `.agents/projects-index.json`.
 - Show short ID first, plus full ID, canonical name, path, initialized/scaffold status, access mode, write policy, aliases, and last activation date.
 
 Registry access metadata:
@@ -169,13 +171,13 @@ For `activate <project-ref>` when a different primary project is already active:
 3. If the user confirms switching primary, activate the requested project as primary.
 4. If the user says the intent was to add an allowed read-only project instead, add it as read-only and remind them that the explicit format is `$session-logger activate + <project-ref>`.
 
-If no project is active and the command is `start`, read only `.agents/projects-index.json`, suggest the last three activated projects as `1`, `2`, `3`, or `Other`, and activate the selected project before recovery. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref.
+If no project is active and the command is `start`, read only the local `.agents/projects-index.json`, suggest the last three activated projects as `1`, `2`, `3`, or `Other`, and activate the selected project before recovery. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref.
 
 If the selected project has `access_mode: "external_read_only"` or `write_policy: "forbidden"`, do not activate it as primary. Explain that it can only be added as read-only after a managed primary is active.
 
 If no project is active for checkpoint, session-end, or audit work, ask the user to activate a primary project first.
 
-For automatic safety capture, no active primary project is a hard stop: block the plan execution or final delivery until the user activates or starts a primary project.
+For project-scoped automatic safety capture, no active primary project is a hard stop: block the plan execution or final delivery until the user activates or starts a primary project. Root-only shared-infrastructure work does not require automatic safety capture and must not create root-level shared memory.
 
 If the active or requested project has `write_policy: "forbidden"`, block any checkpoint, session-end, framework audit upgrade action, automatic safety capture, init action, scaffold write, memory write, or commit for that project.
 
@@ -186,7 +188,7 @@ Reusable context inventory and activation-audit references live under shared fra
 - `docs/frameworks/session-logger/references/effective-context-checklist.md`
 - `docs/frameworks/session-logger/references/activation-audit.md`
 
-Project-local `context-framework` product docs are product history and decision records, not normative shared framework reference.
+Project-local product docs are product history and decision records, not normative shared framework reference.
 
 ## Session topic
 
@@ -194,7 +196,7 @@ Logger commands are control text, never semantic topic text. Do not use `$sessio
 
 On activation/start:
 
-1. If no primary project is active, read only `.agents/projects-index.json` and guide project selection before memory recovery.
+1. If no primary project is active, read only the local `.agents/projects-index.json` and guide project selection before memory recovery.
 2. Read hot memory only from the primary project: `project_identity.md` and `last_session_summary.md`.
 3. Parse the date from the hot summary title when possible. Prefer `dd-mm-yyyy` from titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`.
 4. If the hot summary is older than 72 hours, ask explicit permission to read `last_session_detailed.md`.
@@ -207,7 +209,7 @@ If a native runtime command exists to rename the chat/thread, use it only after 
 
 Within the primary active project only:
 
-0. If no primary project is active, use `.agents/projects-index.json` to suggest recent projects with `1`, `2`, `3`, or `Other`; do not read project memory until a primary project is selected.
+0. If no primary project is active, use the local `.agents/projects-index.json` to suggest recent projects with `1`, `2`, `3`, or `Other`; do not read project memory until a primary project is selected.
 0. If the primary project's workflow scaffold does not exist yet, instruct the user to run `init project <project-name>`.
 1. Read `project_identity.md`.
 2. Read `last_session_summary.md`.
@@ -225,7 +227,7 @@ These permissions apply only within the currently primary active project unless 
 - `Deep recovery` = allow warm + cold
 - `Full recovery` = allow warm + cold + freezing
 - `mid` = manually overwrite summary only after blending current context with relevant automatic entries
-- automatic safety entry = forced append to `auto_recovery.md` around accepted implementation plan execution and narrow non-plan safety events
+- automatic safety entry = forced append to `auto_recovery.md` around accepted project-scoped implementation plan execution and narrow non-plan safety events
 - `Do not burn tokens` = keep recovery hot-only and concise
 
 None of these phrases allows access to another project by itself. Allowed projects remain read-only even when read depth is granted.
@@ -308,7 +310,7 @@ Use native commands as session-control helpers, not as memory sources:
 
 Before `/compact` or `/fork`, append an automatic safety entry first if useful state has not already been written to the primary active project's memory.
 
-Automatic safety capture must also run before `/compact` or `/fork` when either command would follow an accepted implementation plan.
+Automatic safety capture must also run before `/compact` or `/fork` when either command would follow an accepted project-scoped implementation plan.
 
 ## Checkpoint
 
@@ -317,8 +319,8 @@ Within the primary active project only:
 - Require both init and primary activation before `mid`.
 - Manual `mid` reads project identity, current hot summary, current user/session context, and relevant entries from `auto_recovery.md`.
 - Manual `mid` overwrites `last_session_summary.md` only after blending durable facts; do not blindly append duplicate automatic notes.
-- Run automatic safety capture before the first mutating step of every accepted implementation plan, and again after execution/verification before the final response, `/compact`, or `/fork`.
-- Apply automatic safety capture to each distinct execution plan in long or multi-plan work.
+- Run automatic safety capture before the first mutating step of every accepted project-scoped implementation plan, and again after execution/verification before the final response, `/compact`, or `/fork`.
+- Apply automatic safety capture to each distinct project-scoped execution plan in long or multi-plan work.
 - Use a stable plan/checkpoint ID to pair BEFORE and AFTER automatic entries.
 - If a BEFORE entry has no matching AFTER entry, surface it as an unclosed plan marker at later `start`, manual `mid`, or `end`.
 - Automatic non-plan safety entries are allowed only for context pressure, before `/compact`, before `/fork`, or a major decision/milestone recognized by the agent.

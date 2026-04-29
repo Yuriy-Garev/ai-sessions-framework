@@ -16,7 +16,8 @@ Do not collapse these layers. Framework guidance is shared; live project code an
 - `AGENTS.md` - routing and access rules for the whole workspace.
 - `.codex/config.toml` - minimal repo-scoped Codex defaults.
 - `.agents/skills/` - active shared skills only. Template scaffolding must live outside this directory.
-- `.agents/projects-index.json` - repo-level Session Logger project registry used for safe project selection.
+- `.agents/projects-index.example.json` - tracked example schema for the local Session Logger project registry.
+- `.agents/projects-index.json` - local ignored Session Logger project registry used for safe project selection.
 - `.agents/templates/` - reusable agent/skill scaffolding that must not be discovered as active runtime behavior.
 - `docs/frameworks/` - shared reusable framework documentation and reference material.
 - `projects/` - actual implementation projects. Project subtrees are denied by default.
@@ -28,7 +29,8 @@ Allowed by default:
 - `AGENTS.md`
 - `.codex/config.toml`
 - `.agents/skills/`
-- `.agents/projects-index.json`
+- `.agents/projects-index.example.json`
+- `.agents/projects-index.json` when it exists locally
 - `.agents/templates/`
 - `docs/frameworks/`
 - root-level templates/scaffolding and non-project documentation
@@ -58,9 +60,9 @@ activate <primary-project-ref> + <allowed-project-ref>, <allowed-project-ref>
 activate + <allowed-project-ref>, <allowed-project-ref>
 ```
 
-Project refs may be canonical names, aliases, short IDs, or full UUIDs from `.agents/projects-index.json`. The full UUID is the durable project ID; the short ID is a convenience reference.
+Project refs may be canonical names, aliases, short IDs, or full UUIDs from the local `.agents/projects-index.json`. The full UUID is the durable project ID; the short ID is a convenience reference.
 
-Project records in `.agents/projects-index.json` carry an access policy. Normal writable projects use `access_mode: "managed"`. External cloned reference repositories use `access_mode: "external_read_only"` and `write_policy: "forbidden"`.
+Project records in the local `.agents/projects-index.json` carry an access policy. Normal writable projects use `access_mode: "managed"`. External cloned reference repositories use `access_mode: "external_read_only"` and `write_policy: "forbidden"`.
 
 The primary project is the only read/write Session Logger project. Allowed projects after `+` are read-only and may be inspected only when explicitly relevant to the current request. `activate + ...` adds read-only projects without changing the current primary.
 
@@ -151,29 +153,31 @@ Use the `session-logger` skill only when the user explicitly evokes Session Logg
 
 When explicitly evoked, Session Logger commands are:
 - `help` / `help all` -> print `.agents/skills/session-logger/HELP.md` without reading project state
-- `index projects` -> update `.agents/projects-index.json` from immediate project directory names and scaffold/config existence only
+- `index projects` -> create or update the local `.agents/projects-index.json` from immediate project directory names and scaffold/config existence only
 - `list projects` -> list indexed projects, showing short IDs and full IDs, without reading project memory
 - `init project <project-name>` -> create a normalized project scaffold, register it, and activate it as primary
 - `activate <project-ref>` -> activate that project as primary
 - `activate <primary-ref> + <allowed-ref>, <allowed-ref>` -> activate a primary read/write project plus allowed read-only projects
 - `activate + <allowed-ref>, <allowed-ref>` -> add allowed read-only projects without changing the current primary
-- `start` -> recover from hot memory after activation, or guide project selection from `.agents/projects-index.json` if no project is active
+- `start` -> recover from hot memory after activation, or guide project selection from the local `.agents/projects-index.json` if no project is active
 - `mid` -> checkpoint the session
 - `end` -> close the session
 - `deactivate <project-ref>` / `deactivate all` -> remove project access for the current conversation
 
 Do not run Session Logger actions from plain `start`, `mid`, `end`, or `activate` unless the skill was explicitly evoked in the same request. The only exceptions are automatic safety entries, defined below.
 
-If no project is active, Session Logger `start` may read only `.agents/projects-index.json` and offer the last three activated projects as `1`, `2`, `3`, or `Other`. It must activate the chosen project before reading or writing live session memory.
+If no project is active, Session Logger `start` may read only the local `.agents/projects-index.json` and offer the last three activated projects as `1`, `2`, `3`, or `Other`. It must activate the chosen project before reading or writing live session memory.
+
+The public repository tracks `.agents/projects-index.example.json` as the schema example. The live `.agents/projects-index.json` is local ignored state and may be created by `index projects` or `init project`.
 
 If a suggested or selected project has `access_mode: "external_read_only"`, it cannot be selected as primary for `start`; ask the user to activate a managed primary and then add the external project with `activate + <project-ref>` if read-only reference access is needed.
 
 ## Automatic Safety Entries
-When a primary project is active and the user accepts an implementation plan, Codex must append a Session Logger automatic safety entry before the first mutating execution step and another after execution and verification, before the final response, `/compact`, or `/fork`.
+When a primary project is active and the user accepts a project-scoped implementation plan that mutates project or session-scoped state, Codex must append a Session Logger automatic safety entry before the first mutating execution step and another after execution and verification, before the final response, `/compact`, or `/fork`.
 
 Automatic safety entries are a narrow exception to the explicit invocation requirement. They exist to preserve the BEFORE -> NOW delta during long, compacted, or multi-plan work without overwriting hot summary memory.
 
-They apply to every distinct accepted execution plan that will:
+They apply to every distinct accepted project-scoped execution plan that will:
 - edit files
 - run migrations, code generation, or formatters that write files
 - stage, commit, or otherwise mutate repository state
@@ -186,6 +190,8 @@ They also apply to these narrow non-plan safety events when useful state has not
 - major decision or milestone recognized by the agent
 
 They do not apply to read-only exploration, planning-only turns, or non-mutating checks.
+
+Root shared-infrastructure work may proceed without a primary project. Do not create root-level shared memory for root-only work, and do not write automatic safety entries unless a primary project is active and the work is being captured for that project.
 
 Before appending any automatic safety entry, Codex must confirm primary activation, project initialization, and current-thread hot recovery. If hot recovery has not happened in the current thread, read only the primary project's `project_identity.md` and `last_session_summary.md` first. If required files are missing or unreadable, block execution and report the missing prerequisite.
 
@@ -222,7 +228,7 @@ Automatic safety entries obey all normal Session Logger write boundaries:
 - do not write `last_session_detailed.md`
 - do not imply warm, cold, or freezing memory access
 
-If no primary project is active, Codex must block plan execution and ask the user to activate or start a primary project. If an automatic safety entry fails, Codex must block execution or final delivery as appropriate and report the failure. When an automatic non-plan safety entry is appended, briefly tell the user what was captured and why.
+If no primary project is active for project-scoped work that requires automatic safety capture, Codex must block plan execution and ask the user to activate or start a primary project. If an automatic safety entry fails, Codex must block execution or final delivery as appropriate and report the failure. When an automatic non-plan safety entry is appended, briefly tell the user what was captured and why.
 
 ## Skills and Frameworks
 - Prefer active repo-local skills in `.agents/skills/` when the task matches a skill description.

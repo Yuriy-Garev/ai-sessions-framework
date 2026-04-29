@@ -34,7 +34,7 @@ Session Logger governs only:
 
 Automatic safety entries govern only append writes to `docs/workflow/auto_recovery.md` in the active primary project. They do not broaden manual framework audit scope, grant deeper memory access, or grant access to unrelated project code.
 
-Projects marked `access_mode: "external_read_only"` or `write_policy: "forbidden"` in `.agents/projects-index.json` are reference-only. They may be listed, resolved, and activated only as allowed read-only projects; they must never receive Session Logger writes or become primary.
+Projects marked `access_mode: "external_read_only"` or `write_policy: "forbidden"` in the local `.agents/projects-index.json` are reference-only. They may be listed, resolved, and activated only as allowed read-only projects; they must never receive Session Logger writes or become primary.
 
 It does not govern unrelated project code.
 

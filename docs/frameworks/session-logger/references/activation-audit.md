@@ -45,7 +45,7 @@ Use the audit block to explain:
 - `Interpreted command or trigger` is the parsed Session Logger action or automatic safety trigger.
 - `Primary active project` names the read/write Session Logger project for this run.
 - `Allowed read-only projects` names any extra activated projects that may be inspected but not written.
-- `Project index used` states whether `.agents/projects-index.json` was read for selection or listing.
+- `Project index used` states whether the local `.agents/projects-index.json` was read for selection or listing.
 - `Initialization state` states whether the project scaffold exists.
 - `Allowed memory level` states the currently permitted recovery level for this run.
 - `Skill invocation or automatic exception evidence` identifies explicit invocation, or the automatic safety exception for plan-boundary/context-pressure capture.

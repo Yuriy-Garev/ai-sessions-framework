@@ -34,3 +34,7 @@ desktop.ini
 projects/**
 !projects/
 !projects/.gitkeep
+
+# Local workspace state
+.agents/projects-index.json
+.claude/settings.local.json

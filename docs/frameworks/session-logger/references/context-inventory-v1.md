@@ -50,14 +50,15 @@ items:
 | `sessions_history/` | cold state | `primary_active_project` | `cold` | Archive content only after explicit permission |
 | `sessions_history_detailed/` | freezing state | `primary_active_project` | `freezing` | Deep archive content only after explicit permission |
 | `docs/frameworks/session-logger/` | shared reference only | `shared_repo_reference` | `reference` | Never live project memory |
-| `.agents/projects-index.json` | project registry metadata | `project_registry` | `not_applicable` | Safe project selection surface, never live project memory |
+| `.agents/projects-index.json` | local ignored project registry metadata | `project_registry` | `not_applicable` | Safe project selection surface, never live project memory |
+| `.agents/projects-index.example.json` | tracked project registry schema example | `shared_repo_reference` | `reference` | Portable schema example, never live project memory |
 | `.agents/skills/session-logger/HELP.md` | command help text | `shared_repo_reference` | `reference` | Printed verbatim for help, never live project memory |
 
 ## Operation Notes
 
 - `help` prints `.agents/skills/session-logger/HELP.md` verbatim and must not read project state.
-- `index projects` updates `.agents/projects-index.json` from immediate project child names and scaffold/config existence only.
-- `list projects` reads only `.agents/projects-index.json`.
+- `index projects` creates or updates the local `.agents/projects-index.json` from immediate project child names and scaffold/config existence only.
+- `list projects` reads only the local `.agents/projects-index.json`.
 - `init project` uses shared scaffold inputs, writes project workflow placeholders, registers the project, and activates it as primary without recovering live memory.
 - `activate` chooses a primary read/write project and optional allowed read-only projects.
 - `start` recovers from `project_identity.md` and `last_session_summary.md`; it may surface unresolved `auto_recovery.md` entries without granting warm/cold access.

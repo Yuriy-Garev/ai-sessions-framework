@@ -1,6 +1,6 @@
-# CodexAccess — Claude Code Entry
+# Claude Code Entry
 
-This is a Codex-first multi-project workspace. Claude Code runs here with **identical behavior** to Codex. There is no Claude-specific framework.
+This is a Codex-first multi-project workspace template. Claude Code runs here with **identical behavior** to Codex. There is no Claude-specific framework.
 
 ## Source of truth
 
@@ -8,7 +8,7 @@ Read [`AGENTS.md`](AGENTS.md) in full before any action that touches `.agents/`,
 
 ## Claude-specific rules
 
-1. **Auto-memory is disabled in this repo.** Do not create or write to `~/.claude/projects/D--Desktop-CodexAccess/memory/**` for any work scoped to this workspace. The Session Logger framework (project-local `docs/workflow/`) is the only memory system. If you encounter pre-existing auto-memory entries from earlier sessions, treat them as read-only legacy and prefer Session Logger memory.
+1. **Auto-memory is disabled in this repo.** Do not create or write Claude auto-memory for work scoped to this workspace. The Session Logger framework (project-local `docs/workflow/`) is the only memory system. If you encounter pre-existing auto-memory entries from earlier sessions, treat them as read-only legacy and prefer Session Logger memory.
 
 2. **Default-deny on `projects/**`.** Do not read project code, project memory, or recurse into a project subtree until the user explicitly says `activate <project-ref>` (or one of the `activate ... + ...` forms). This mirrors AGENTS.md exactly.
 
@@ -27,7 +27,7 @@ Read [`AGENTS.md`](AGENTS.md) in full before any action that touches `.agents/`,
 
 - `AGENTS.md`, `CLAUDE.md` (this file)
 - `.codex/config.toml`, `.claude/settings.json`
-- `.agents/skills/`, `.agents/projects-index.json`, `.agents/templates/`
+- `.agents/skills/`, `.agents/projects-index.example.json`, local `.agents/projects-index.json` when it exists, `.agents/templates/`
 - `docs/frameworks/`
 - root-level templates and non-project documentation
 
@@ -37,3 +37,8 @@ Anything under `projects/` requires explicit activation.
 
 - Session Logger framework reference: [`docs/frameworks/session-logger/`](docs/frameworks/session-logger/) (shared reference, not live state).
 - Latest framework manifest: [`docs/frameworks/session-logger/updates/latest.md`](docs/frameworks/session-logger/updates/latest.md).
+
+## Local state
+
+- The live Session Logger registry `.agents/projects-index.json` is local ignored state. The tracked schema example is `.agents/projects-index.example.json`.
+- Machine-specific Claude allow rules belong in `.claude/settings.local.json`, which is local ignored state.

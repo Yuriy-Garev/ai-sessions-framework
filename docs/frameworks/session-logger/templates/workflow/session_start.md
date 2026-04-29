@@ -6,7 +6,7 @@ This procedure assumes the project has already been bootstrapped with `init proj
 
 ## Required Actions
 1. Confirm the user explicitly activated this project as the primary project, or selected it through registry-assisted `start`.
-2. If no primary project is active, read only `.agents/projects-index.json`.
+2. If no primary project is active, read only the local `.agents/projects-index.json`.
 3. Suggest the last three activated projects using question mode when possible: `1`, `2`, `3`, or `Other`.
 4. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref.
 5. Activate the selected project as primary before reading project memory.
@@ -49,7 +49,7 @@ If a native runtime command exists to rename the chat/thread, use it only after 
 | `last_session_detailed.md` | no, except explicit stale-hot warm permission |
 | archive filenames | yes, within active project |
 | archive file contents | no |
-| `.agents/projects-index.json` | yes, only before activation or for project listing |
+| `.agents/projects-index.json` | yes, only before activation or for project listing; local ignored registry state |
 
 ---
 
@@ -76,7 +76,7 @@ activate + <allowed-ref>, <allowed-ref>
 - The primary project is read/write for Session Logger workflow memory.
 - Allowed projects are read-only.
 - `activate + ...` adds allowed read-only projects without changing the current primary.
-- Project refs may be names, aliases, short IDs, or full UUIDs from `.agents/projects-index.json`.
+- Project refs may be names, aliases, short IDs, or full UUIDs from the local `.agents/projects-index.json`.
 - Allowed projects must not receive checkpoints, session-end logs, framework upgrades, commits, or memory writes.
 
 ---

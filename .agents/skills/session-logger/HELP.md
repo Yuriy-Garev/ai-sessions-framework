@@ -16,16 +16,16 @@ $session-logger list projects
 $session-logger init project my-project
 ```
 
-- `index projects` updates the project registry from immediate `projects/` folders and scaffold/config existence only.
+- `index projects` creates or updates the local `.agents/projects-index.json` registry from immediate `projects/` folders and scaffold/config existence only.
 - `list projects` shows short IDs, full IDs, names, paths, scaffold status, access mode, write policy, and last activation dates.
 - `init project my-project` normalizes the name, creates the workflow scaffold, registers the project, and activates it as primary.
-- Projects marked `external_read_only` in the registry cannot be initialized or written by Session Logger.
+- Projects marked `external_read_only` in the local registry cannot be initialized or written by Session Logger.
 
 ## Activation
 
 ```text
-$session-logger activate context-framework
-$session-logger activate 48b98e5c
+$session-logger activate my-project
+$session-logger activate 12345678
 $session-logger activate app + docs-site, api-service
 $session-logger activate + docs-site
 $session-logger deactivate app
@@ -79,6 +79,7 @@ $session-logger audit framework
 
 - `help` prints this file only; it does not read project memory or the project index.
 - `index projects` never reads project code or workflow memory contents.
+- The live `.agents/projects-index.json` registry is local ignored state. The tracked schema example is `.agents/projects-index.example.json`.
 - Warm, cold, and freezing memory still require explicit permission.
 - Allowed read-only projects must not receive checkpoints, session logs, framework upgrades, commits, or memory writes.
 - External read-only projects have `write_policy: forbidden`; Session Logger must block init, primary activation, checkpoints, session end, automatic safety entries, scaffold writes, framework upgrades, commits, and memory writes for them.
