@@ -24,7 +24,7 @@ $session-logger start
 - `CLAUDE.md` - Claude Code entrypoint that points to the canonical rules.
 - `.codex/config.toml` - repo-scoped Codex defaults.
 - `.claude/settings.json` - portable Claude Code allowlist for common read-only inspection commands.
-- `.claude/skills/` - Claude discovery shims that point to canonical skills.
+- `.claude/skills/` - Claude discovery shims or mirrored project-local skill copies.
 - `.agents/skills/` - canonical shared skills.
 - `.agents/templates/` - reusable scaffolding that must not be discovered as active skills.
 - `docs/frameworks/` - reusable framework documentation and workflow templates.
@@ -61,6 +61,15 @@ Key rules:
 - The live registry can be recreated or refreshed with `$session-logger index projects`.
 
 The canonical skill lives at `.agents/skills/session-logger/SKILL.md`; the framework docs live at `docs/frameworks/session-logger/`.
+
+## Shared Skills
+
+Tracked root skills include:
+
+- `session-logger` - project-scoped memory workflow for activation, recovery, checkpoints, and closeout.
+- `cli-docs-creator` - CLI help and terminal documentation design support.
+- `conceptual-lattice` - cross-domain conceptual synthesis and first-principles reframing.
+- `prompt-master` - prompt creation, improvement, and adaptation for AI tools.
 
 ## Fork Workflow
 
