@@ -47,7 +47,8 @@ $session-logger mid
 $session-logger end
 ```
 
-- `start` recovers from hot memory after activation.
+- `start` recovers from hot memory after activation, then inspects `docs/workflow/auto_recovery.md` only for unresolved automatic safety entries, unmatched BEFORE entries, `open` / `unclosed` statuses, or non-template entries that affect restart accuracy.
+- This `auto_recovery.md` inspection is hot-adjacent recovery, not warm/cold/freezing access, and unresolved auto-recovery state is surfaced before stale-hot warm recovery is requested.
 - If no project is active, `start` can suggest recent projects before reading project memory.
 - `mid` manually blends current context and relevant automatic recovery entries into the primary project's hot summary.
 - `end` closes the session, writes logs, and may attempt scoped git reconciliation.

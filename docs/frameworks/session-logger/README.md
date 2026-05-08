@@ -90,7 +90,7 @@ Within the primary active project only:
 1. Current user request
 2. `project_identity.md`
 3. `last_session_summary.md`
-4. `auto_recovery.md` when manual `mid`, `end`, or unclosed-plan recovery needs pending automatic entries
+4. `auto_recovery.md` for bounded startup inspection, manual `mid`, `end`, or unclosed-plan recovery when pending automatic entries may affect restart accuracy
 5. Approved `last_session_detailed.md`
 6. Approved files from `sessions_history/`
 7. Approved files from `sessions_history_detailed/`
@@ -134,7 +134,7 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 - `init project` prepares, registers, and immediately activates an uninitialized project.
 - `activate` chooses the primary read/write project and optional allowed read-only projects.
 - `audit framework` manually compares the primary active project against the current shared framework methodology.
-- `start` recovers from hot memory once the scaffold exists.
+- `start` recovers from hot memory plus bounded hot-adjacent `auto_recovery.md` restart markers once the scaffold exists.
 - `mid` manually blends current context and relevant automatic recovery entries into a curated hot-summary checkpoint.
 - automatic safety capture appends before/after entries around accepted project-scoped implementation plan execution and narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
 - `end` writes closeout logs, merges and clears `auto_recovery.md` after successful incorporation, and may attempt scoped commit reconciliation.
@@ -143,7 +143,7 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 
 Session Logger commands are control text. Do not use `$session-logger start`, `Session Logger start`, or `Start session logger` as the durable session topic.
 
-On activation/start, read hot memory and parse the date from `last_session_summary.md` when possible. Prefer `dd-mm-yyyy` in titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`. If no project is active, `start` first reads only the local `.agents/projects-index.json` and offers recent projects as `1`, `2`, `3`, or `Other`. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref. After a primary project is selected, apply normal hot recovery. If the hot summary is older than 72 hours, ask permission to read warm memory, brief the user on state, and ask them to choose the topic. If hot memory is fresh, warm access is denied, or the date cannot be parsed, derive the topic from the first non-logger work request.
+On activation/start, read hot memory and parse the date from `last_session_summary.md` when possible. Prefer `dd-mm-yyyy` in titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`. If no project is active, `start` first reads only the local `.agents/projects-index.json` and offers recent projects as `1`, `2`, `3`, or `Other`. If the user selects `Other`, list indexed projects excluding the recent three and ask for a project ref. After a primary project is selected, apply normal hot recovery: read `project_identity.md`, read `last_session_summary.md`, then inspect `auto_recovery.md` if it exists only for unresolved automatic safety entries, unmatched BEFORE entries, `open` / `unclosed` statuses, or non-template entries that affect restart accuracy. This is hot-adjacent recovery, not warm/cold/freezing access. Surface unresolved auto-recovery state before asking permission to read warm memory when the hot summary is older than 72 hours. If hot memory is fresh, warm access is denied, or the date cannot be parsed, derive the topic from the first non-logger work request.
 
 ## Permission phrases
 
@@ -173,7 +173,7 @@ The active skill is `session-logger`, displayed as Session Logger. It must be ex
 - `deactivate all` clears all active project permissions for the current conversation.
 - `disactivate` is tolerated as an alias for `deactivate`, but `deactivate` is canonical.
 - `audit framework` runs a manual framework audit for the primary active project only.
-- `start` recovers from hot memory and applies topic freshness rules.
+- `start` recovers from hot memory, inspects bounded hot-adjacent `auto_recovery.md` restart markers, and applies topic freshness rules.
 - `mid` writes a curated hot-summary checkpoint by blending current context with relevant automatic recovery entries.
 - `end` closes the session, writes history, attempts a one-time scoped git commit, and reconciles latest logs after a successful commit.
 

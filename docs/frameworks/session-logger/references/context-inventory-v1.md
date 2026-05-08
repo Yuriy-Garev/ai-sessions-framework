@@ -61,7 +61,7 @@ items:
 - `list projects` reads only the local `.agents/projects-index.json`.
 - `init project` uses shared scaffold inputs, writes project workflow placeholders, registers the project, and activates it as primary without recovering live memory.
 - `activate` chooses a primary read/write project and optional allowed read-only projects.
-- `start` recovers from `project_identity.md` and `last_session_summary.md`; it may surface unresolved `auto_recovery.md` entries without granting warm/cold access.
+- `start` recovers from `project_identity.md` and `last_session_summary.md`, then inspects `auto_recovery.md` for unresolved restart-relevant entries without granting warm/cold access.
 - manual `mid` blends project identity, hot summary, current context, and relevant `auto_recovery.md` entries into a curated hot-summary checkpoint.
 - automatic safety entries append only to `auto_recovery.md`.
 - `end` writes latest logs, merges useful `auto_recovery.md` entries, clears the buffer only after successful incorporation, and then runs scoped git reconciliation when appropriate.

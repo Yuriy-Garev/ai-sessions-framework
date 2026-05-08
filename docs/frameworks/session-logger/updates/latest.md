@@ -1,11 +1,12 @@
 # Session Logger Framework Latest
 
 framework: session-logger
-latest_framework_update_date: 2026-04-28
+latest_framework_update_date: 2026-05-09
 
 ## Summary
 
 Current framework head for Session Logger project-scoped memory, including append-only automatic safety capture.
+Startup now includes bounded hot-adjacent inspection of `auto_recovery.md` for unresolved or restart-relevant automatic entries.
 
 ## Current Methodology Highlights
 
@@ -21,6 +22,7 @@ Current framework head for Session Logger project-scoped memory, including appen
 - add-read-only activation with `activate + <project-ref>`
 - automatic safety entries before and after accepted implementation plan execution
 - append-only `docs/workflow/auto_recovery.md` for automatic safety capture
+- bounded `auto_recovery.md` inspection during activation/start for unresolved restart-relevant entries
 - manual `mid` blends hot summary with relevant automatic recovery entries
 - session `end` merges and clears auto recovery only after successful incorporation
 

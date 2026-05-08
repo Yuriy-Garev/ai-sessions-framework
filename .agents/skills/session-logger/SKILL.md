@@ -82,7 +82,7 @@ help|index projects -> init project|activate -> audit framework -> start -> mid/
 - `init project` prepares an uninitialized project for Session Logger use, registers it, and activates it as primary.
 - `activate` chooses the primary read/write project and optional allowed read-only projects.
 - `audit framework` manually checks the primary active project against the current shared framework methodology.
-- `start` recovers from hot memory only after init exists.
+- `start` recovers from hot memory plus bounded hot-adjacent `auto_recovery.md` restart markers after init exists.
 - `mid` manually blends current context and relevant automatic entries into a curated hot-summary checkpoint.
 - automatic safety entries append to `auto_recovery.md` before/after accepted project-scoped implementation plan execution and for narrow context-pressure, `/compact`, `/fork`, or major-milestone events.
 - `end` writes closeout logs, merges and clears `auto_recovery.md` after successful incorporation, and may attempt scoped commit reconciliation.
@@ -197,11 +197,13 @@ Logger commands are control text, never semantic topic text. Do not use `$sessio
 On activation/start:
 
 1. If no primary project is active, read only the local `.agents/projects-index.json` and guide project selection before memory recovery.
-2. Read hot memory only from the primary project: `project_identity.md` and `last_session_summary.md`.
-3. Parse the date from the hot summary title when possible. Prefer `dd-mm-yyyy` from titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`.
-4. If the hot summary is older than 72 hours, ask explicit permission to read `last_session_detailed.md`.
-5. If warm access is granted, brief: where we are, what we were doing, what was done, and what is next. Then ask the user to choose the session topic.
-6. If hot memory is fresh, warm access is denied, or the date is missing/unparseable, leave the topic pending and derive it from the first non-logger work request.
+2. Read hot memory from the primary project: `project_identity.md` and `last_session_summary.md`.
+3. If `auto_recovery.md` exists, inspect it only for unresolved automatic safety entries, unmatched BEFORE entries, `open` / `unclosed` statuses, or non-template entries that affect restart accuracy.
+4. Treat this `auto_recovery.md` inspection as hot-adjacent recovery, not warm/cold/freezing access, and surface unresolved auto-recovery state before asking for warm recovery on stale hot summaries.
+5. Parse the date from the hot summary title when possible. Prefer `dd-mm-yyyy` from titles like `Mon, 14-04-2026 | ...`; also accept ISO `yyyy-mm-dd`.
+6. If the hot summary is older than 72 hours, ask explicit permission to read `last_session_detailed.md`.
+7. If warm access is granted, brief: where we are, what we were doing, what was done, and what is next. Then ask the user to choose the session topic.
+8. If hot memory is fresh, warm access is denied, or the date is missing/unparseable, leave the topic pending and derive it from the first non-logger work request.
 
 If a native runtime command exists to rename the chat/thread, use it only after a real topic is known. Otherwise use the derived topic in session logs, archive slugs, and commit messages.
 
@@ -213,15 +215,16 @@ Within the primary active project only:
 0. If the primary project's workflow scaffold does not exist yet, instruct the user to run `init project <project-name>`.
 1. Read `project_identity.md`.
 2. Read `last_session_summary.md`.
-3. Apply the session-topic rules above.
-4. Brief the current state from hot memory.
-5. Do not escalate below hot without explicit permission.
+3. Inspect `auto_recovery.md` if present, limited to unresolved automatic safety entries, unmatched BEFORE entries, `open` / `unclosed` statuses, or non-template entries that affect restart accuracy.
+4. Apply the session-topic rules above.
+5. Brief the current state from hot memory and hot-adjacent restart-relevance markers.
+6. Do not escalate below hot or bounded hot-adjacent recovery without explicit permission.
 
 ## Permission model
 
 These permissions apply only within the currently primary active project unless the user explicitly names an allowed read-only project and grants read depth for that project:
 
-- `Hot only` = summary only
+- `Hot only` = `project_identity.md`, `last_session_summary.md`, and bounded startup inspection of `auto_recovery.md` for unresolved or restart-relevant automatic entries; this is hot-adjacent recovery, not warm/cold/freezing access.
 - `Check warm` = allow `last_session_detailed.md`
 - `Go cold` = allow `sessions_history/`
 - `Deep recovery` = allow warm + cold

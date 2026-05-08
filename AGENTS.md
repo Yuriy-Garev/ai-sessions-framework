@@ -108,15 +108,16 @@ Before doing substantive work in an activated project:
 1. Confirm the active project was explicitly named by the user.
 2. Read only that project's `docs/workflow/project_identity.md`.
 3. Read only that project's `docs/workflow/last_session_summary.md`.
-4. Recover from hot memory first.
-5. Do not read deeper memory unless the user explicitly authorizes it.
+4. If that project's `docs/workflow/auto_recovery.md` exists, inspect it only for unresolved automatic safety entries, unmatched BEFORE entries, `open` / `unclosed` statuses, or non-template entries that affect restart accuracy.
+5. Recover from hot memory and hot-adjacent recovery state first, surfacing unresolved auto-recovery state before asking for warm recovery.
+6. Do not read deeper memory unless the user explicitly authorizes it.
 
 If no project is active, do not read project memory. For repo-level infrastructure tasks, use only repo-level shared files.
 
 ## Permission Phrases
 Interpret these phrases only within the currently active and allowed project:
 
-- `Hot only` -> do not read beyond that project's `last_session_summary.md`
+- `Hot only` -> read that project's `project_identity.md`, `last_session_summary.md`, and bounded `auto_recovery.md` restart-relevance markers only; do not read warm/cold/freezing memory
 - `Check warm` -> may read that project's `last_session_detailed.md`
 - `Go cold` -> may open files in that project's `docs/workflow/sessions_history/`
 - `Deep recovery` -> may read that project's warm + cold memory
@@ -141,7 +142,7 @@ For activated project work:
 1. Current user request
 2. Active project's `docs/workflow/project_identity.md`
 3. Active project's `docs/workflow/last_session_summary.md`
-4. Active project's `docs/workflow/auto_recovery.md` when manual `mid`, `end`, or unclosed-plan recovery needs pending automatic entries
+4. Active project's `docs/workflow/auto_recovery.md` for bounded startup inspection, manual `mid`, `end`, or unclosed-plan recovery when pending automatic entries may affect restart accuracy
 5. Approved active-project `docs/workflow/last_session_detailed.md`
 6. Approved active-project files in `docs/workflow/sessions_history/`
 7. Approved active-project files in `docs/workflow/sessions_history_detailed/`
